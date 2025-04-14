@@ -97,6 +97,17 @@ export async function robotMeetupFormValuesToMeetup(
   });
 }
 
+export async function robotMeetupFormValuesToMeetup(
+  meetupFormValues: RobotMeetupFormValues,
+) {
+  const { timestamp, ...rest } = meetupFormValues;
+
+  return safeParseAsync(meetupSchema, {
+    ...rest,
+    date: timestamp,
+  });
+}
+
 export function meetupFormDateSchema(input: string) {
   const parsedDate = parse(input, 'yyyy-MM-dd', new Date());
 
