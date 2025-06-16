@@ -8,6 +8,8 @@ export async function handleRequest(req: Request, env: Env): Promise<Response> {
     return meetupParseResult.errorResponse;
   }
 
+  console.log('Parsed meetup', meetupParseResult.parsedMeetup);
+
   const createIssueRes = await createIssue({
     meetup: meetupParseResult.parsedMeetup,
     env,

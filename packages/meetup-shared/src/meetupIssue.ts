@@ -1,23 +1,21 @@
-import { format } from 'date-fns';
 import { safeParseAsync } from 'valibot';
-import { meetupFormValuesSchema } from './meetupForm';
 import { type Meetup } from './meetupType';
+import {
+  humanMeetupIssueValuesSchema,
+  robotMeetupIssueValuesSchema,
+} from './meetupForm';
+
+export const timestampFieldTitle = '🤖 ISO Timestamp';
 
 export function getMeetupIssueBody(meetup: Meetup) {
-  const { date, time } = extractDateAndTime(meetup.date);
-
   return `
 ### Meetup title
 
 ${meetup.title}
 
-### Date
+### ${timestampFieldTitle}
 
-${date}
-
-### Time
-
-${time}
+${meetup.date.toISOString()}
 
 ### Street address
 
@@ -44,11 +42,29 @@ ${meetup.signupLink}
 ${meetup.description}`;
 }
 
-export function parseMeetupIssueBody(body: string) {
-  const unverifiedMeetupFormValues = {
+function parseHumanMeetupIssueFormValues(meetupIssueFormValues: unknown) {
+  return safeParseAsync(humanMeetupIssueValuesSchema, meetupIssueFormValues);
+}
+
+function parseRobotMeetupIssueFormValues(meetupIssueFormValues: unknown) {
+  return safeParseAsync(robotMeetupIssueValuesSchema, meetupIssueFormValues);
+}
+
+export async function parseMeetupIssueBody(body: string): Promise<
+  | {
+      robot: false;
+      result: Awaited<ReturnType<typeof parseHumanMeetupIssueFormValues>>;
+    }
+  | {
+      robot: true;
+      result: Awaited<ReturnType<typeof parseRobotMeetupIssueFormValues>>;
+    }
+> {
+  const { date, time, timestamp, ...meetupIssueFormValues } = {
     title: getValueFromBody(body, 'Meetup title'),
     date: getValueFromBody(body, 'Date'),
     time: getValueFromBody(body, 'Time'),
+    timestamp: getValueFromBody(body, timestampFieldTitle),
     location: getValueFromBody(body, 'Street address'),
     locationLink: getValueFromBody(body, 'Maps link for address'),
     organizer: getValueFromBody(body, 'Organizer'),
@@ -57,14 +73,29 @@ export function parseMeetupIssueBody(body: string) {
     description: getRestAfterTitle(body, 'Description'),
   };
 
-  return safeParseAsync(meetupFormValuesSchema, unverifiedMeetupFormValues);
-}
+  console.log('date', date);
+  console.log('time', time);
+  console.log('timestamp', timestamp);
+  console.log('meetupIssueFormValues', meetupIssueFormValues);
 
-function extractDateAndTime(date: Date) {
-  return {
-    date: format(date, 'yyyy-MM-dd'),
-    time: format(date, 'HH:mm'),
-  };
+  if (date && time) {
+    return {
+      robot: false,
+      result: await parseHumanMeetupIssueFormValues({
+        ...meetupIssueFormValues,
+        date,
+        time,
+      }),
+    };
+  } else {
+    return {
+      robot: true,
+      result: await parseRobotMeetupIssueFormValues({
+        ...meetupIssueFormValues,
+        timestamp,
+      }),
+    };
+  }
 }
 
 function getValueFromBody(body: string, title: string) {

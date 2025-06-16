@@ -293,7 +293,9 @@ Stable diffusion for the win. For images and animations. But what is facebook do
               viewBox="0 0 20 20"
               fill="currentColor"
               aria-hidden="true"
-              onclick="document.getElementById('submit-error-element').classList.add('hidden');"
+              onclick="
+              document.getElementById('submit-error-element').classList.add('hidden');
+"
             >
               <path
                 fill-rule="evenodd"
@@ -486,7 +488,7 @@ Stable diffusion for the win. For images and animations. But what is facebook do
 <script>
   import {
     type MeetupWithStringDate,
-    assertMeetupFormFields,
+    assertHumanMeetupFormFields,
   } from 'meetup-shared';
   import { formatMeetupData } from '../utils';
 
@@ -508,15 +510,13 @@ Stable diffusion for the win. For images and animations. But what is facebook do
     }
 
     const formData = Object.fromEntries(new FormData(form).entries());
-    assertMeetupFormFields(formData);
+    assertHumanMeetupFormFields(formData);
 
-    const formattedMeetupData = formatMeetupData(formData);
+    const { time, date, ...formattedMeetupData } = formatMeetupData(formData);
 
     const body = {
       ...formattedMeetupData,
-      date: new Date(
-        `${formattedMeetupData.date}T${formattedMeetupData.time}:00`,
-      ).toISOString(),
+      date: new Date(`${date}T${time}:00`).toISOString(),
     } satisfies MeetupWithStringDate;
 
     // fieldset must be disabled after getting formdata

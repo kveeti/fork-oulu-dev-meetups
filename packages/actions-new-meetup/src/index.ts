@@ -6,8 +6,9 @@ import {
   getMeetupIssueCommentStatus,
   getMeetupMarkdownFileContent,
   getMeetupPullRequestContent,
-  meetupFormValuesToMeetup,
   parseMeetupIssueBody,
+  humanMeetupFormValuesToMeetup,
+  robotMeetupFormValuesToMeetup,
 } from 'meetup-shared';
 import fs from 'node:fs/promises';
 import { join } from 'node:path';
@@ -41,17 +42,24 @@ async function main() {
       env.ISSUE_BODY,
     );
 
-    if (!meetupIssueBodyParseResult.success) {
+    if (!meetupIssueBodyParseResult.result.success) {
       throw new CustomError('Invalid issue body ', [
-        { status: 'error', issues: meetupIssueBodyParseResult.error.issues },
+        {
+          status: 'error',
+          issues: meetupIssueBodyParseResult.result.error.issues,
+        },
         { status: 'idle' },
         { status: 'idle' },
       ]);
     }
 
-    const meetupParseResult = await meetupFormValuesToMeetup(
-      meetupIssueBodyParseResult.data,
-    );
+    const meetupParseResult = meetupIssueBodyParseResult.robot
+      ? await robotMeetupFormValuesToMeetup(
+          meetupIssueBodyParseResult.result.data,
+        )
+      : await humanMeetupFormValuesToMeetup(
+          meetupIssueBodyParseResult.result.data,
+        );
 
     if (!meetupParseResult.success) {
       throw new CustomError('Invalid issue body ', [
@@ -64,50 +72,44 @@ async function main() {
       ]);
     }
 
-    const meetup = meetupParseResult.data;
-
-    const sanitizedMeetupTitle = sanitizeString(meetup.title);
-
-    const sanitizedDate = format(meetup.date, 'yyyy-MM-dd-HH-mm');
-
     await upsertComment.withSteps([
       { status: 'success' },
       { status: 'loading' },
       { status: 'idle' },
     ]);
 
-    const newMeetupFile = getMeetupMarkdownFileContent(meetup);
+    const meetup = meetupParseResult.data;
 
-    await fs
-      .writeFile(
-        join(
-          '../../',
-          env.MEETUP_FOLDER,
-          `${sanitizedMeetupTitle}-${sanitizedDate}.md`,
-        ),
-        newMeetupFile,
-      )
-      .catch(() => {
-        throw new CustomError('Error writing new meetup file', [
-          { status: 'success' },
-          { status: 'error', message: 'Error writing new meetup file' },
-          { status: 'idle' },
-        ]);
-      });
+    const sanitizedMeetupTitle = sanitizeString(meetup.title);
+    const sanitizedDate = format(meetup.date, 'yyyy-MM-dd-HH-mm');
+
+    const newBranchName = `new-meetup-${env.ISSUE_NUMBER}`;
+    const pullRequestTitle = `New meetup: ${meetup.title}`;
+    const pullRequestBody = getMeetupPullRequestContent(
+      meetup,
+      env.ISSUE_NUMBER,
+    );
+
+    const newMeetupFile = getMeetupMarkdownFileContent(meetup);
+    const newMeetupFilePath = join(
+      '../../',
+      env.MEETUP_FOLDER,
+      `${sanitizedMeetupTitle}-${env.ISSUE_NUMBER}-${sanitizedDate}.md`,
+    );
+
+    await fs.writeFile(newMeetupFilePath, newMeetupFile).catch(() => {
+      throw new CustomError('Error writing new meetup file', [
+        { status: 'success' },
+        { status: 'error', message: 'Error writing new meetup file' },
+        { status: 'idle' },
+      ]);
+    });
 
     await upsertComment.withSteps([
       { status: 'success' },
       { status: 'success' },
       { status: 'loading' },
     ]);
-
-    const newBranchName = `new-meetup-${sanitizedMeetupTitle}-${sanitizedDate}`;
-
-    const pullRequestTitle = `New meetup: ${meetup.title}`;
-    const pullRequestBody = getMeetupPullRequestContent(
-      meetup,
-      env.ISSUE_NUMBER,
-    );
 
     core.setOutput('branch_name', newBranchName);
     core.setOutput('pull_request_title', pullRequestTitle);

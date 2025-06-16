@@ -8,14 +8,14 @@ import {
   string,
   transform,
   url,
+  isoTimestamp,
+  merge,
 } from 'valibot';
 import { meetupSchema } from './meetupType';
 
-export const meetupFormFields = [
+const sharedMeetupFormFields = [
   'title',
   'description',
-  'date',
-  'time',
   'location',
   'locationLink',
   'organizer',
@@ -23,31 +23,77 @@ export const meetupFormFields = [
   'signupLink',
 ] as const;
 
-export type MeetupFormFields = typeof meetupFormFields;
-export type MeetupFormField = MeetupFormFields[number];
+export const humanMeetupFormFields = [
+  ...sharedMeetupFormFields,
+  'date',
+  'time',
+] as const;
 
-export const meetupFormValuesSchema = object({
+export const robotMeetupFormFields = [
+  ...sharedMeetupFormFields,
+  'timestamp',
+] as const;
+
+export type SharedMeetupFormField = (typeof sharedMeetupFormFields)[number];
+type HumanMeetupFormField = (typeof humanMeetupFormFields)[number];
+type RobotMeetupFormField = (typeof robotMeetupFormFields)[number];
+
+type ExclusivelyHumanMeetupFormField = Exclude<
+  HumanMeetupFormField,
+  SharedMeetupFormField
+>;
+type ExclusivelyRobotMeetupFormField = Exclude<
+  RobotMeetupFormField,
+  SharedMeetupFormField
+>;
+
+const sharedMeetupIssueValuesSchema = object({
   title: string([minLength(1)]),
   description: string([minLength(1)]),
-  date: transform(string([minLength(1)]), meetupFormDateSchema),
-  time: transform(string([minLength(1)]), meetupFormTimeSchema),
   location: string([minLength(1)]),
   locationLink: string([url()]),
   organizer: string([minLength(1)]),
   organizerLink: string([url()]),
   signupLink: string([url()]),
-} satisfies Record<MeetupFormField, unknown>);
+} satisfies Record<SharedMeetupFormField, unknown>);
 
-export type MeetupFormValues = Output<typeof meetupFormValuesSchema>;
+export const robotMeetupIssueValuesSchema = merge([
+  sharedMeetupIssueValuesSchema,
+  object({
+    timestamp: string([isoTimestamp()]),
+  } satisfies Record<ExclusivelyRobotMeetupFormField, unknown>),
+]);
 
-export async function meetupFormValuesToMeetup(
-  meetupFormValues: MeetupFormValues,
+export const humanMeetupIssueValuesSchema = merge([
+  sharedMeetupIssueValuesSchema,
+  object({
+    date: transform(string([minLength(1)]), meetupFormDateSchema),
+    time: transform(string([minLength(1)]), meetupFormTimeSchema),
+  } satisfies Record<ExclusivelyHumanMeetupFormField, unknown>),
+]);
+
+export type RobotMeetupFormValues = Output<typeof robotMeetupIssueValuesSchema>;
+export type HumanMeetupFormValues = Output<typeof humanMeetupIssueValuesSchema>;
+
+export async function humanMeetupFormValuesToMeetup(
+  meetupFormValues: HumanMeetupFormValues,
 ) {
   const { date, time, ...rest } = meetupFormValues;
 
   return safeParseAsync(meetupSchema, {
     ...rest,
-    date: new Date(`${date}T${time}:00`).toISOString(),
+    date: new Date(`${date}T${time}`).toISOString(),
+  });
+}
+
+export async function robotMeetupFormValuesToMeetup(
+  meetupFormValues: RobotMeetupFormValues,
+) {
+  const { timestamp, ...rest } = meetupFormValues;
+
+  return safeParseAsync(meetupSchema, {
+    ...rest,
+    date: timestamp,
   });
 }
 
@@ -87,14 +133,14 @@ export function meetupFormTimeSchema(input: string) {
   return input;
 }
 
-export function assertMeetupFormFields(
+export function assertHumanMeetupFormFields(
   meetupFormValues: Record<string, unknown>,
-): asserts meetupFormValues is Record<MeetupFormField, string> {
+): asserts meetupFormValues is Record<HumanMeetupFormField, string> {
   if (!meetupFormValues || typeof meetupFormValues !== 'object') {
     throw new Error('Missing values');
   }
 
-  meetupFormFields.forEach((key) => {
+  humanMeetupFormFields.forEach((key) => {
     if (!(key in meetupFormValues)) {
       throw new Error(`Meetup form values is missing '${key}'`);
     }

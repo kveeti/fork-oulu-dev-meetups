@@ -1,7 +1,7 @@
-import { type MeetupFormValues } from 'meetup-shared';
+import { type HumanMeetupFormValues } from 'meetup-shared';
 import { type FrontMeetups } from './get-meetups';
 
-export const formatMeetupData = (meetup: MeetupFormValues) => {
+export const formatMeetupData = (meetup: HumanMeetupFormValues) => {
   const formattedMeetup = structuredClone(meetup);
 
   if (
