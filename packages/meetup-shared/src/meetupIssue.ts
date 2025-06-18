@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { safeParseAsync } from 'valibot';
 import { meetupFormValuesSchema } from './meetupForm';
 import { type Meetup } from './meetupType';
+import { tz } from '@date-fns/tz';
 
 export function getMeetupIssueBody(meetup: Meetup) {
   const { date, time } = extractDateAndTime(meetup.date);
@@ -64,10 +65,11 @@ export function parseMeetupIssueBody(body: string) {
   return safeParseAsync(meetupFormValuesSchema, unverifiedMeetupFormValues);
 }
 
+const EuropeHelsinki = tz('Europe/Helsinki');
 function extractDateAndTime(date: Date) {
   return {
-    date: format(date, 'yyyy-MM-dd'),
-    time: format(date, 'HH:mm'),
+    date: format(date, 'yyyy-MM-dd', { in: EuropeHelsinki }),
+    time: format(date, 'HH:mm', { in: EuropeHelsinki }),
   };
 }
 
