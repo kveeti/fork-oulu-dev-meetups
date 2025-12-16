@@ -40,9 +40,9 @@ const { Content } = await render();
       <!--card header -->
       <div class="border-b border-gray-200 bg-sky-100 px-4 py-5 sm:px-6">
         <div
-          class="-ml-4 -mt-4 flex flex-wrap items-center justify-between sm:flex-nowrap"
+          class="-mt-4 -ml-4 flex flex-wrap items-center justify-between sm:flex-nowrap"
         >
-          <div class="ml-4 mt-4">
+          <div class="mt-4 ml-4">
             <div class="flex items-center">
               <div class="shrink-0">
                 <img
@@ -54,7 +54,7 @@ const { Content } = await render();
                 />
               </div>
               <div class="ml-4">
-                <h3 class="text-base font-semibold leading-6 text-gray-900">
+                <h3 class="text-base leading-6 font-semibold text-gray-900">
                   Organized by
                 </h3>
                 <p class="text-sm text-gray-500">
@@ -63,11 +63,11 @@ const { Content } = await render();
               </div>
             </div>
           </div>
-          <div class="ml-4 mt-4 flex shrink-0">
+          <div class="mt-4 ml-4 flex shrink-0">
             <a
               href={signupLink}
               target="_blank"
-              class="relative ml-3 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+              class="relative ml-3 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -102,7 +102,7 @@ const { Content } = await render();
           <div class="px-4 py-6 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
             <dt class="text-sm font-medium text-gray-900">When</dt>
             <dd
-              class="mt-1 font-semibold leading-6 text-gray-700 sm:col-span-2 sm:mt-0"
+              class="mt-1 leading-6 font-semibold text-gray-700 sm:col-span-2 sm:mt-0"
             >
               {formattedDate}
             </dd>
