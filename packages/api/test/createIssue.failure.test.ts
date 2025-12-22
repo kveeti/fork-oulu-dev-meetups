@@ -11,14 +11,16 @@ import { testEnvVars } from './_test.env-vars';
 const mockCreateIssue = vi.fn().mockResolvedValue({ status: 500 });
 vi.mock('octokit', async (importOg) => {
   const og = await importOg<typeof import('octokit')>();
-  return {
-    ...og,
-    App: vi.fn().mockReturnValue({
-      getInstallationOctokit: () => ({
+
+  const App = vi.fn(
+    class {
+      getInstallationOctokit = vi.fn().mockResolvedValue({
         rest: { issues: { create: mockCreateIssue } },
-      }),
-    }),
-  };
+      });
+    },
+  );
+
+  return { ...og, App };
 });
 
 test('Returns 500 when call to github api fails', async () => {
@@ -56,6 +58,4 @@ test('Returns 500 when call to github api fails', async () => {
     title: 'New meetup: Test issue',
     request: { fetch: expect.any(Function) },
   });
-
-  vi.resetAllMocks();
 });
